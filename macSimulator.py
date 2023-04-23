@@ -53,7 +53,7 @@ class MacSimulator:
 
         self.cell_list.clear()
         for cellid in range(self.num_cell):
-            self.cell_list.append(Cell(int(np.random.rand()*256)))
+            self.cell_list.append(Cell(cellid, int(np.random.rand()*256)))
         self.agent.select_action()
         for cell in self.cell_list:
             cell.run(int(time.time_ns() / 1000))
@@ -64,7 +64,8 @@ class MacSimulator:
         pass
 
 class Cell:
-    def __init__(self, num_ue, max_schpdu = 2, numcore = 1):
+    def __init__(self, ccid, num_ue, max_schpdu = 2, numcore = 1):
+        self.ccid = ccid
         self.max_schpdu = max_schpdu
         self.num_ue = num_ue
         self.ue_list = []
@@ -170,7 +171,7 @@ class Ue:
 
 
 print("Number of processors : ", mp.cpu_count())
-cell = Cell(256,12,4)
+cell = Cell(0,256,12,4)
 
 for i in range(500):
     cell.run(int(time.time_ns() / 1000))
