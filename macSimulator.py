@@ -25,9 +25,9 @@ class MacSimulator:
         self.step_cnt = 10
         self.mode = "q-learning"
         self.Q = defaultdict(lambda: np.zeros(self.num_action))
-        if os.path.isfile('q-data.json'):
+        """if os.path.isfile('q-data.json'):
             with open('q-data.json', 'r') as f:
-                self.Q = json.load(f)
+                self.Q = json.load(f)"""
         self.rewardHistory = []
 
     def setMode(self, mode):
@@ -96,35 +96,37 @@ class MacSimulator:
             offset = int(offset / self.num_action_cell)
         return action
 
+    def createCellList(self):
+        self.cell_list.clear()
+        self.ue_list.clear()
+
+        heavyCc = np.random.randint(0, self.num_cell + 1, size=1)
+
+        for uid in range(self.num_ue):
+            if (heavyCc == self.num_cell):
+                if (np.random.rand() < 0.3):
+                    self.ue_list.append(ueSim.Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
+                else:
+                    self.ue_list.append(ueSim.Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
+            else:
+                if (np.random.rand() < 0.7):
+                    if (np.random.rand() < 0.3):
+                        self.ue_list.append(ueSim.Ue(uid, 10, True, heavyCc))
+                    else:
+                        self.ue_list.append(ueSim.Ue(uid, 10, False, heavyCc))
+                else:
+                    if (np.random.rand() < 0.5):
+                        self.ue_list.append(ueSim.Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
+                    else:
+                        self.ue_list.append(ueSim.Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
+        for cellid in range(self.num_cell):
+            self.cell_list.append(cellSim.Cell(cellid, list(filter(lambda x: x.ccid == cellid, self.ue_list))))
+
     def qLearning(self):
         self.agent = agent.Agent(self.Q, self.num_action, self.mode)
         num_episodes = 100
         for i_episode in range(1, num_episodes + 1):
-
-            self.cell_list.clear()
-            self.ue_list.clear()
-
-            heavyCc = np.random.randint(0, self.num_cell, size = 1)
-
-            for uid in range(self.num_ue):
-                if(np.random.rand() < 0.5):
-                    if(np.random.rand() < 0.3):
-                        self.ue_list.append(ueSim.Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
-                    else:
-                        self.ue_list.append(ueSim.Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
-                else:
-                    if(np.random.rand() < 0.7):
-                        if (np.random.rand() < 0.3):
-                            self.ue_list.append(ueSim.Ue(uid, 10, True, heavyCc))
-                        else:
-                            self.ue_list.append(ueSim.Ue(uid, 10, False, heavyCc))
-                    else:
-                        if (np.random.rand() < 0.5):
-                            self.ue_list.append(ueSim.Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
-                        else:
-                            self.ue_list.append(ueSim.Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
-            for cellid in range(self.num_cell):
-                self.cell_list.append(cellSim.Cell(cellid, list(filter(lambda x: x.ccid == cellid, self.ue_list))))
+            self.createCellList()
 
             state = self.getState()
             action = self.applyAction(state)
@@ -199,11 +201,11 @@ while True:
     print("1. q-learning")
     print("2. test")
     mode = int(input("select : "))
-    if(mode == 1):
+    if(mode == '1'):
         macSimulator.setMode("q-learning")
         macSimulator.qLearning()
-        with open('q-data.json', 'w') as f:
-            json.dump(macSimulator.Q, f)
+        """with open('q-data.json', 'w') as f:
+            json.dump(macSimulator.Q, f)"""
         plt.plot(macSimulator.rewardHistory)
         plt.show()
     else:
