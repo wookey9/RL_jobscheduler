@@ -1,4 +1,3 @@
-import json
 import random
 from collections import defaultdict
 import matplotlib.pyplot as plt
@@ -6,6 +5,9 @@ import numpy as np
 import time, os
 import multiprocess as mp
 import agent
+import json
+import cellSimulator as cellSim
+import ueSimulator as ueSim
 
 actType = [(2,1),(4,2)]
 
@@ -107,22 +109,22 @@ class MacSimulator:
             for uid in range(self.num_ue):
                 if(np.random.rand() < 0.5):
                     if(np.random.rand() < 0.3):
-                        self.ue_list.append(Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
+                        self.ue_list.append(ueSim.Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
                     else:
-                        self.ue_list.append(Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
+                        self.ue_list.append(ueSim.Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
                 else:
                     if(np.random.rand() < 0.7):
                         if (np.random.rand() < 0.3):
-                            self.ue_list.append(Ue(uid, 10, True, heavyCc))
+                            self.ue_list.append(ueSim.Ue(uid, 10, True, heavyCc))
                         else:
-                            self.ue_list.append(Ue(uid, 10, False, heavyCc))
+                            self.ue_list.append(ueSim.Ue(uid, 10, False, heavyCc))
                     else:
                         if (np.random.rand() < 0.5):
-                            self.ue_list.append(Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
+                            self.ue_list.append(ueSim.Ue(uid, 10, True, np.random.randint(0, self.num_cell, size=1)))
                         else:
-                            self.ue_list.append(Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
+                            self.ue_list.append(ueSim.Ue(uid, 10, False, np.random.randint(0, self.num_cell, size=1)))
             for cellid in range(self.num_cell):
-                self.cell_list.append(Cell(cellid, list(filter(lambda x: x.ccid == cellid, self.ue_list))))
+                self.cell_list.append(cellSim.Cell(cellid, list(filter(lambda x: x.ccid == cellid, self.ue_list))))
 
             state = self.getState()
             action = self.applyAction(state)
@@ -134,11 +136,11 @@ class MacSimulator:
                 procs = []
                 procs_coreNum = []
                 procCnt = 0
-                for Cell in self.cell_list:
+                for cell in self.cell_list:
                     if(coreCnt + cell.num_core <= self.num_core):
                         coreCnt += cell.num_core
                         procCnt += 1
-                        proc = mp.Procss(target = cell.run, args = (startTime, i))
+                        proc = mp.Process(target = cell.run, args = (startTime, i))
                         procs.append(proc)
                         procs_coreNum.append(cell.num_core)
                         proc.start()
@@ -189,99 +191,6 @@ class MacSimulator:
                                                                                                        reward
                                                                                                        ))
 
-class Cell:
-    def __init__(self, ccid, ue_list, max_schpdu = 2, numcore = 1):
-        self.ccid = ccid
-        self.max_schpdu = max_schpdu
-        self.num_ue = len(ue_list)
-        self.maxTbs = 1000
-        self.cycle_slot_limit = 200000
-        self.num_core = numcore
-        self.cur_proc_cycle = 0
-
-        self.ue_list = ue_list
-
-        self.sched_ue = mp.Queue()
-        self.sch_result = mp.Queue()
-
-    def setNumCore(self, numcore):
-        self.num_core = numcore
-
-    def setMaxSchPdu(self, max_schpdu):
-        self.max_schpdu = max_schpdu
-
-    def rbAllocation(self, tbs, mcsProcess):
-        self.mcsCalculation(mcsProcess)
-        time.sleep(tbs * 0.0001)
-
-    def mcsCalculation(self, numProcess):
-        time.sleep(numProcess * 0.002)
-
-    def schedule(self, ue, leftTbs):
-        schTbs = 0
-        if ue.bo < leftTbs:
-            schTbs = ue.bo
-        else:
-            schTbs = leftTbs
-
-        procs = []
-        for c in range(self.num_core):
-            proc = mp.Process(target = self.rbAllocation, args = (schTbs / self.num_core ,10 / self.num_core,))
-            procs.append(proc)
-            proc.start()
-
-        for proc in procs:
-            proc.join()
-
-
-        leftBo = ue.bo - schTbs
-        ue.update_bo(leftBo, self.run_cnt, self.maxTbs)
-        return schTbs
-
-    def run(self, cycle_start, curTime):
-        random.shuffle(self.ue_list)
-        self.ue_list.sort(key=lambda ue: ue.bo, reverse=True)
-        self.ue_list.sort(key=lambda ue: curTime - ue.updateTime, reverse=True)
-
-        time.sleep(0.0001 * self.num_ue)
-        schcnt = 0
-        schTbsSum = 0
-
-        for ue in self.ue_list:
-            if((schcnt < self.max_schpdu) & (schTbsSum < self.maxTbs)):
-                tbs = self.schedule(ue, self.maxTbs - schTbsSum)
-                self.sched_ue.put((ue.uid, tbs))
-                schTbsSum += tbs
-                schcnt += 1
-            else:
-                break
-
-        cycle_end = int(time.time_ns() / 1000)
-        cycle_proc = cycle_end - cycle_start
-
-        if(cycle_proc >= self.cycle_slot_limit):
-            schcnt = 0
-            schTbsSum = 0
-
-        self.sch_result.put((cycle_proc, schTbsSum, schcnt, cycle_proc >= self.cycle_slot_limit))
-        #print("[{}] sch : {}, acctbs : {}, curSch : {}, curTbs : {}, proc : {}, min : {}, max : {}, avg : {}, skip : {}".format(self.run_cnt, self.totSch, self.totTbs, schcnt, schTbsSum, cycle_proc, cur_min, cur_max, int(cur_sum / self.run_cnt), self.skip_cnt))
-
-class Ue:
-    def __init__(self, uid, bo, heavy, ccid) :
-        self.uid = uid
-        self.bo = bo
-        self.updateTime = 1
-        self.heavy = heavy
-        self.ccid = ccid
-    def update_bo(self, leftBo, updateTime, maxTbs):
-        if(leftBo <= 0):
-            if(self.heavy):
-                leftBo = int(np.random.rand() * maxTbs / 5) + 800
-            else:
-                leftBo = int(np.random.rand() * maxTbs / 10)
-        self.bo = leftBo
-        self.updateTime = updateTime
-
 
 print("Number of processors : ", mp.cpu_count())
 
@@ -293,7 +202,7 @@ while True:
     if(mode == 1):
         macSimulator.setMode("q-learning")
         macSimulator.qLearning()
-        with open('q-date.json', 'w') as f:
+        with open('q-data.json', 'w') as f:
             json.dump(macSimulator.Q, f)
         plt.plot(macSimulator.rewardHistory)
         plt.show()
