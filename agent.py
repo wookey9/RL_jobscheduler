@@ -5,10 +5,10 @@ import numpy as np
 
 class Agent:
 
-    def __init__(self, Q, mode="test_mode"):
+    def __init__(self, Q, num_action, mode="test_mode"):
         self.Q = Q
         self.mode = mode
-        self.n_actions = 8
+        self.n_actions = num_action
         self.eps = 1.0
         self.gamma = 0.85
         self.alpha = 0.1
