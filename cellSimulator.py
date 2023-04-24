@@ -40,7 +40,7 @@ class Cell:
 
         procs = []
         for c in range(self.num_core):
-            proc = mp.Process(target = self.rbAllocation, args = (schTbs / self.num_core ,10 / self.num_core,))
+            proc = mp.Process(target = self.rbAllocation, args = (schTbs / self.num_core, 10 / self.num_core,))
             procs.append(proc)
             proc.start()
 

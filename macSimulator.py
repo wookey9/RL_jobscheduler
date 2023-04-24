@@ -194,20 +194,23 @@ class MacSimulator:
                                                                                                        ))
 
 
-print("Number of processors : ", mp.cpu_count())
 
-macSimulator = MacSimulator()
-while True:
-    print("1. q-learning")
-    print("2. test")
-    mode = int(input("select : "))
-    if(mode == '1'):
-        macSimulator.setMode("q-learning")
-        macSimulator.qLearning()
-        """with open('q-data.json', 'w') as f:
-            json.dump(macSimulator.Q, f)"""
-        plt.plot(macSimulator.rewardHistory)
-        plt.show()
-    else:
-        macSimulator.setMode("test-mode")
-        macSimulator.qLearning()
+
+if __name__ == '__main__':
+    print("Number of processors : ", mp.cpu_count())
+
+    macSimulator = MacSimulator()
+    while True:
+        print("1. q-learning")
+        print("2. test")
+        mode = int(input("select : "))
+        if(mode == 1):
+            macSimulator.setMode("q-learning")
+            macSimulator.qLearning()
+            """with open('q-data.json', 'w') as f:
+                json.dump(macSimulator.Q, f)"""
+            plt.plot(macSimulator.rewardHistory)
+            plt.show()
+        else:
+            macSimulator.setMode("test-mode")
+            macSimulator.qLearning()
