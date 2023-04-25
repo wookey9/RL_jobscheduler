@@ -22,7 +22,7 @@ class MacSimulator:
         self.ue_list = []
         self.cell_cycle_stat = [(0,0,0,0,0) for i in range(self.num_cell)]
         self.cell_tput_stat = [(0,0) for i in range(self.num_cell)]
-        self.step_cnt = 10
+        self.step_cnt = 500
         self.mode = "q-learning"
         self.Q = defaultdict(lambda: np.zeros(self.num_action))
         """if os.path.isfile('q-data.json'):
@@ -124,11 +124,10 @@ class MacSimulator:
 
     def qLearning(self):
         self.agent = agent.Agent(self.Q, self.num_action, self.mode)
-        num_episodes = 100
+        num_episodes = 100000
+        state = self.getState()
         for i_episode in range(1, num_episodes + 1):
             self.createCellList()
-
-            state = self.getState()
             action = self.applyAction(state)
             self.initStat()
 
@@ -181,7 +180,7 @@ class MacSimulator:
             state = next_state
             self.rewardHistory.append(reward)
             for cell in self.cell_list:
-                print("[{}] [{}] [{}]  Action[{}/{}] State[{}/{}/{}/{}/{}/{}/{}/{}] Reward[{}]".format(i_episode, cell.ccid, cell.num_ue, cell.num_core, cell.max_schpdu,
+                print("[{}] [{}] [{}]  Action[{}/{}] State[{}/{}/{}/{}/{}/{}/{}/{}] Reward[{}] e[{}]".format(i_episode, cell.ccid, cell.num_ue, cell.num_core, cell.max_schpdu,
                                                                                                        next_state[cell.ccid * 8 + 0],
                                                                                                        next_state[cell.ccid * 8 + 1],
                                                                                                        next_state[cell.ccid * 8 + 2],
@@ -190,7 +189,8 @@ class MacSimulator:
                                                                                                        next_state[cell.ccid * 8 + 5],
                                                                                                        next_state[cell.ccid * 8 + 6],
                                                                                                        next_state[cell.ccid * 8 + 7],
-                                                                                                       reward
+                                                                                                       reward,
+                                                                                                        self.agent.eps
                                                                                                        ))
 
 
